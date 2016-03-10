@@ -1,0 +1,9 @@
+body.en .filter li div.k {
+	width: 4em;
+}
+body.en .filter li div.v {
+	padding-left: 6em;
+}
+body.en .list-menu li a{
+	padding: 1em .5em 1em 1em;
+}

@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,height=device-height,inital-scale=1.0,maximum-scale=1.0,user-scalable=no;">
+	<title>HWPG</title>
+	<link rel="stylesheet" href="css/style.css">
+	<script src="js/jquery-1.10.1.min.js"></script>
+	<script src="js/idangerous.swiper.js"></script>
+	<script src="js/hwpg.com.js"></script>
+<script src="js/method.js"></script>
+<script src="js/choose.js"></script>
+	<script type="text/javascript">
+        var user;
+		$(document).ready(function($) {
+                    user=getUrlParam('user');
+                    $('#user_name').html( sessionStorage.userName);
+                $('.process').css('left',$(window).width()/2-20).css('top',$(window).height()/2-20);
+                 $('.tabs > li :first').click();
+				$('#next').click(function(event) {
+					/* Act on the event */
+                   if(!checkIsLogin())
+                    {
+                        return;
+                    }
+					var unitId= $('#hidUnitId').val();
+					if(unitId == "")
+					{
+					 reminder('请选中一个单位');
+					 return;
+					}
+					 //SelectUnit(unitId);
+                    getSaleInfo(unitId);
+					$('#step1').hide();
+					$('#step2').show();
+				});
+			  $('#back').click(function(event) {
+					/* Act on the event */
+					$('#step1').show();
+					$('#step2').hide();
+				});
+				
+				 $('#printSearch').click(function(){
+                         var custValue = $('#printCustValue').val();
+                         if(custValue =="")
+                         {
+                         return;
+                         }
+                         if($(this).hasClass('fa-times'))
+                         {
+                          return ;
+                         }
+                         $('#printsearchResult').toggle();
+                         $(this).find('.fa').toggleClass('fa-times');
+                         getPrintCutomerInfo();
+                 });
+                 
+				$('#search').click(function(){ 
+				 var custValue = $('#custValue').val();
+                if(custValue =="")
+                {
+                 return;
+                }
+                 
+                 if($(this).find('.fa').hasClass('fa-times'))
+                 {
+                  $('#searchResult').toggle();
+                  $(this).find('.fa').toggleClass('fa-times');  
+                   return ;
+                 }  
+                 
+                  $('#searchResult').toggle();
+                  $(this).find('.fa').toggleClass('fa-times');      
+                  getCutomerInfo(); 
+                 
+                      
+               });
+                  //加载项目
+                 getProject();
+		});
+    
+    function saleAddBack()
+    {
+        window.location.href='sales.html';
+        //$('.tabs > li :first').click();
+    }
+    function registerCustomer()
+    {
+        var name  = $('#fullname').val();
+        var number = $('#phonenumber').val();
+        var identifier = $('#identifier').val();
+        if(name == "")
+        {
+            reminder("姓名不能为空");
+            return;
+        }
+        if(number == "")
+        {
+            reminder("电话号码不能为空");
+            return;
+        }
+        if(identifier == "")
+        {
+            reminder("身份证不能为空");
+            return;
+        }
+        waitLockScreen();
+        addCustomerInfo(name,number,identifier);
+    }
+
+   function funCunstomerInfo(result)
+   {
+       unLockWaitScreen();
+       var res = eval(result);
+       if(res == "" || res==undefined)
+       {
+           reminder("注册 失败");
+       }else
+       {
+           var arr = res.split(',');
+           $("#resultH4").html("注册成功,你的登记号为:"+arr[0]);
+           $('#hidCustId').val(arr[1]);
+           $('#custValue').val(arr[0]);
+           $('#custName').val($('#fullname').val());
+           $('#custIdentify').val($('#phonenumber').val());
+           $('#custTelephone').val($('#identifier').val());
+           
+           //
+           //$('#fullname').val('');
+          // $('#phonenumber').val('');
+           // $('#identifier').val('');
+           //
+           reminder("注册成功");
+            $('.tabs > li :first').click();
+       }
+   }
+   	
+function checkIsLogin()
+{
+    if(user == "" || user ==null || user == undefined)
+    {
+        reminder("请先登录!");
+        return false;
+    }else
+    {
+        return true;
+    }
+}
+   //获得层
+function getFloorUnit(towerID)
+{
+  waitLockScreen();
+  methodPara("getFloorUnit",'['+towerID+']',funFloorUnitResult);
+}
+function funFloorUnitResult(result)
+{
+    unLockWaitScreen();
+    $('#unitTable').html('');
+    var ListMode = eval(result);
+    var html = "";
+    var seq = "";
+     clearSelectUnit();
+    for(var i=0;i<ListMode.length;i++)
+    {
+        var unitMode=ListMode[i];
+        
+        var bMoreFloor = false;
+        
+        var status = unitMode.STATUS;
+        if(parseInt(unitMode.SEQ) >1 || bMoreFloor)
+        {
+       
+          if(i==0)
+          {
+           html+="<tr><td>"+unitMode.SEQ+"</td>";
+          }else if(seq != unitMode.SEQ)
+          {
+
+            html+="</tr><tr><td>"+unitMode.SEQ+"</td>";
+          }
+ 
+          if(10 == parseInt(status))       
+          html +="<td id='"+unitMode.ID+"'class='td-able' onclick='SelectUnit(this,"+unitMode.ID+")' >"+unitMode.NAME+"</td>";
+          else
+          html +="<td id='"+unitMode.ID+"'  class='td-unable'>"+unitMode.NAME+"</td>";
+          seq = unitMode.SEQ;
+          bMoreFloor = true;
+          if(i==ListMode.length-1)
+          {
+            html+="</tr>";
+          }
+        }
+        else
+        {
+           if(10 == parseInt(status))
+           html +="<tr><td>"+unitMode.SEQ+"</td>"+"<td class='td-able' onclick='SelectUnit(this,"+unitMode.ID+")'>"+unitMode.NAME+"</td>"+"</tr>";
+           else
+           html +="<tr><td>"+unitMode.SEQ+"</td>"+"<td class='td-unable'>"+unitMode.NAME+"</td>"+"</tr>";
+        }
+    }
+    
+    $('#unitTable').append(html);
+
+}
+function clearReisterInfo()
+{
+$('#fullname').val('');
+$('#phonenumber').val('');
+$('#identifier').val('');
+$('#addr-phone').val('');
+$('#resultH4').html('');
+}
+    
+function gotoRegisterPage()
+{
+    $('.tabs > li :last').click();
+}
+function loginOut()
+{
+    $('#user_name').html('');
+    window.location.href='login.html';
+}
+</script>
+	<style>
+		.ppt-name {
+
+			color: #e10000;
+			position: relative;
+			font-weight: bold;
+		}
+		figure{
+			text-align: center;
+			padding: 0;
+			margin: 0;
+			margin-bottom: 1em;
+		}
+		.process{
+		    position: fixed;
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.53);
+            border-radius: 5px;
+            color: #fff;
+            z-index: 999;
+		}
+		.process-bg
+		{
+			width: 100%;
+			height: 100%;
+			content: " ";
+			background-color: rgba(255, 255, 255, 0.53);
+			position:fixed;
+			top: 0;
+			left: 0;
+			z-index:998;
+		}
+	</style>
+	</head>
+	
+	<body>
+		<header class="alpha-bg">
+		<input style="display:none" id='hidUnitId'/>
+			<h1><a href="index.html">&nbsp;返 回</a></h1>
+			<div class="header-action right">
+				<a href="#" id="show"><i class="fa fa-reorder"></i></a>
+                <a href="#" style='padding:0 .5em'><i class="fa fa-user"></i><span id='user_name'>ivan zou</span></a>
+                <a href='javascript:loginOut()'><i class='fa fa-power-off'></i></a>
+			</div>
+		</header>
+
+		<section>
+			<ul class="tabs">			
+				
+				<li class="active"><a href="#sales"> 认购</a></li>
+				<li ><a href="#print"> 打印MS</a></li>
+                <li style="float:right"><a href="#reg"> 注册</a></li>
+
+			</ul>
+			<div id="reg">
+			 <h4 id='resultH4'></h4>
+				<ul class="list-view list-view-form" >
+					<li class="divider">
+						主要信息
+					</li>		
+					<li>		
+						<label for="addr-title">姓名</label>
+						<input type="text" name="addr-title" id="fullname">
+					</li>
+					<li>		
+						<label for="addr-contact">电话</label>
+						<input type="text" name="addr-contact" id="phonenumber">
+					</li>
+					<li>		
+						<label for="addr-phone">身份证</label>
+						<input type="text" name="addr-phone" id="identifier">
+					</li>
+					<li>		
+						<label for="addr-phone">地址</label>
+						<input type="text" name="addr-phone" id="addr-phone">
+					</li>					
+				</ul>
+
+				<a href="javascript:registerCustomer()" class="button button-primary button-rounded button-block">提交</a>
+			</div>
+
+			<div id="sales" style="display:none">
+			<div id="step1">
+			      <input id='custName' style='display:none' />
+                  <input id='custIdentify'style='display:none' />
+                  <input id='custTelephone'style='display:none' />
+                  
+				<ul class="filter sales" >
+					<li>
+						<div class="k" >期</div>
+						<div class="v" id='liPhase'><span class="detial"></span></div>
+					</li>
+					<li>
+						<div class="k">园</div>
+						<div class="v" id='liGarden'> <span class="detial"></span></div>
+					</li>
+					<li>
+						<div class="k">栋</div>
+						<div class="v" id='liTower'><span class="detial"></span></div>
+					</li>
+				</ul>
+				<div class="table-container">
+					<div class="unit-list">
+						<table class="table" id='unitTable'>
+						</table>
+					</div>
+                     
+					<div class="unit-info">
+            <span class="fa fa-thumb-tack"></span>
+			        	
+			          <div class="info">
+                <div class="price" style='display:none'><i class="fa fa-jpy"></i> <span ID='listPriceId'></span></div>
+                <dl style='display:none' id='saleInfomation'>
+                     <h3 style=''><span id='unitNameInfo'></span></h3>
+                	<dt>价格</dt>
+                    <dd><i class="fa fa-jpy"></i> <span id='baseListPrice'></span></dd>
+
+                    <dt style='display:none'>折扣金额</dt>
+                    <dd style='display:none'><i class="fa fa-jpy"></i> <span id='discountId'></span></dd>
+
+                    <dt>面积</dt> 
+                    <dd><span ID='areaId'>0</span> m<sup>2</sup></dd>
+                    
+                    <dt>房型</dt> 
+                    <dd><span id='flattypeId'></span></dd>
+
+                    <dt>朝向</dt> 
+                    <dd>南</dd>
+                </dl>
+            </div>
+
+			           
+			        </div> 
+					</div>
+					<a href="#" class="button button-primary button-rounded button-block" style="margin-top: 20px;clear:both" id="next">下一步</a>
+					</div>
+					
+					<div id="step2" style="display:none">
+						<form class="frm">
+			        	<ul>
+			        		<li>
+			        			<div class="frm-item">
+						        	<label for=""><i class="fa fa-user"></i> 客户号</label>
+						        	<div class="frm-group">
+						        		<input type="text" width="5" id='custValue'><input type='text' style='display:none' id='hidCustId'>
+						        		<a href="#" class="btn" id="search"> <i class="fa fa-search"></i></a>
+			                            <ul class="filter-list" id="searchResult">
+			                               <!-- <li><a href=""><p>张三</p><p>13765871400</p><p>612731198001012100</p></a></li>
+			                                <li><a href=""><p>张三</p><p>18125871457</p><p>612731198001012125</p></a></li>
+			                                <li><a href=""><p>张三</p><p>18625871457</p><p>612731198001012147</p></a></li>-->
+			                            </ul>
+			                        </div>
+			                        <div class="frm-group">
+			                            <a  class="btn" href="javascript:gotoRegisterPage()" ><i class="fa fa-plus"></i> 快速登记</a>
+						        	</div>
+
+					        	</div>
+			                    
+			        		</li>
+			        		<li>
+        			<div class="frm-item">
+			        	<label for=""><i class="fa fa-rmb"></i> 付款方式</label>
+			        	<div class="frm-group">
+			        		
+			        		<select name="payItem" id="payItem" onchange='selectBankInfo(this)'>
+			        			<option value="">成</option>
+			        		</select>
+			        		
+			        		
+			        	</div>
+		        	</div>
+        		</li>
+        		<li>
+        			<div class="frm-item">
+			        	<label for=""><i class="fa fa-bank"></i></i> 按揭方式</label>
+			        	<div class="frm-group">
+			        		
+			        		<select name="" id="bankpercent" >
+			        			<option value="">成</option>
+			        		</select>
+                            <span>&nbsp;&nbsp;&nbsp;&nbsp;</span>
+			        		<select name="" id="bankYear">
+                                <option value="">年</option>
+                                <option value="30">30</option>
+                                <option value="20">20</option>
+			        			<option value="10">10</option>
+                                
+                                
+			        		</select>
+			        		
+			        	</div>
+		        	</div>
+        		</li>
+        		
+
+        		<li>
+        			<div class="frm-item">
+			        	<label for=""><i class="fa fa-gift"></i> 折扣情况</label>
+			        	总折<span id='discountPrice'></span> 
+		        	</div>
+        		</li>
+        		<li>
+        			<div class="frm-item">
+			        	<label for=""><i class="fa fa-users"></i> 销售</label>
+			        	<div class="frm-group">
+                    
+			        		<select name="saleAgent" id="saleAgent">
+			        			<option value="">销售代理</option>
+			        		</select>
+			        		<select name="seller" id="seller">
+			        			<option value="">销售员</option>
+			        		</select>
+                            
+			        		<select name="laywer" id="laywer">
+			        			<option value="">律师楼</option>
+			        		</select>
+			        		
+			        	</div>
+		        	</div>
+        		</li></form>
+			        	<a href="#" class="button button-primary button-rounded button2" style="margin-top: 20px;clear:both;" id='back'>上一步</a>
+			        	<a  href="javascript:submit()" class="button button-primary button-rounded button2" style="margin-top: 20px;clear:both;">提交</a>
+					</div>
+			        
+			        
+				
+                <div id="step3" style="display:none">
+                    <div class="container un">
+                        <DIV style='text-align:center;font-size:20px;color:red' id='isSuccess'>认购成功</DIV>
+                        <div>
+                            <h3>G1期1号楼1单元201</h3>
+                            <div class="info">
+                                
+                                
+                                
+                                <div class="price" style='display:none'><i class="fa fa-jpy"></i> <span ID='addSaleTotal'>9,210,100.00</span></div>
+                                <dl>
+                                    
+                                    <dt>客户姓名</dt>
+                                    <dd id='addSaleCustName'>张三</dd>
+                                    
+                                    <dt>身份证</dt>
+                                    <dd id='addSaleIdentier'></dd>
+                                    
+                                    <dt>手机</dt>
+                                    <dd id='addSalePhone'></dd>
+                                    
+                                    <dt>销售员</dt>
+                                    <dd id='addSaleName'></dd>
+                                    
+                                    <dt>销售代理</dt>
+                                    <dd id='addSaleAgent'></dd>
+                                    
+                                    <dt>律师楼</dt>
+                                    <dd id='addSalelawyer'></dd>
+                                    
+                                    <dt>基本价格</dt>
+                                    <dd><i class="fa fa-jpy"></i><span id='addSalePrice'></span></dd>
+                                    
+                                    <dt style='display:none'>折扣金额</dt>
+                                    <dd style='display:none'><i class="fa fa-jpy"></i> <span id='addSaleDisPrice'>0.00</span></dd>
+                                    
+                                    <dt>面积</dt>
+                                    <dd><span ID='addSaleArea'></span>m <sup>2</sup></dd>
+                                    
+                                    <dt>房型</dt>
+                                    <dd><span id='addSaleType'></span></dd>
+                                    
+                                    <dt>朝向</dt>
+                                    <dd>南</dd>
+                                </dl>
+                            </div>
+                            
+                            <!--            <h3>客户信息</h3>-->
+<!--                            <div class="info">-->
+<!--                                -->
+<!--                                <dl>-->
+<!--                                    <dt>客户姓名</dt>-->
+<!--                                    <dd id='addSaleCustName'>张三</dd>-->
+<!--                                    -->
+<!--                                    <dt>身份证</dt>-->
+<!--                                    <dd id='addSaleIdentier'></dd>-->
+<!--                                    -->
+<!--                                    <dt>手机</dt>-->
+<!--                                    <dd id='addSalePhone'></dd>-->
+<!--                                    -->
+<!--                                </dl>-->
+<!--                            </div> -->
+
+                            <a  href="javascript:saleAddBack()" class="button button-primary button-rounded button-block" style="margin-top: 20px;clear:both">返回认购</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+		</div>
+
+
+	    
+	    
+	  <div id='print' style="display:none">
+	  
+	  
+	   <script>
+var printDesc = "";
+function funMutiPrintCustomerResult(result)
+{
+    
+    $('#printsearchResult').html('');
+    var ListMode = eval(result);
+    var html = "";
+    
+    for(var i=0;i<ListMode.length;i++)
+    {
+        var cust=ListMode[i];
+        html+="<li><a href='javascript:selectPrintCustomer("+cust.CUSTID+",\""+cust.CUSTNO+"\",\""+cust.NAME+"\",\""+cust.TELEPHONE+"\",\""+cust.IDENTITY+"\","+cust.ISBUY+")'><p>";
+        
+        html+=cust.NAME+"</p><p>"+cust.TELEPHONE+"</p><p>"+cust.IDENTITY+"</p></a></li>";
+        
+        printDesc = cust.DESCRIPTION;
+    }
+    if(ListMode.length ==0)
+    {
+        html+="<li ><a href='javascript:void(0)'><p>无记录&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p><p></p></a></li>";
+    }
+    $('#printsearchResult').append(html);
+}
+
+function selectPrintCustomer(custId,custno,custName,custTelephone,custIdentify,isbuy)
+{
+    
+    $('.info').css('display','');
+    $('#printCustId').val(custId);
+    $('#printCustValue').val(custno);
+    $('#printsearchResult').toggle();
+    
+    $('#printCustName').html(custName);
+    
+    $('#printIdeiter').html(custTelephone);
+    
+    $('#printPhone').html(custIdentify);
+    
+    $('#printUnit').html(printDesc);
+    
+}
+ function getPrintCutomerInfo()
+      {
+          var inputValue = $('#printCustValue').val();
+          methodPara("getPrintMutilCustmer","["+inputValue+"]",funMutiPrintCustomerResult)
+      }
+function printMs()
+{
+    var custId = $('#printCustId').val();
+    if(custId != "" && custId !=undefined)
+    {
+    waitLockScreen();
+      methodPara("printMS","["+custId+"]",fungetPrinResult);
+    }else
+    {
+        reminder("无效的打印");
+    }
+}
+function fungetPrinResult(result)
+{
+  unLockWaitScreen();
+  var reValue = eval(result);
+
+  if(reValue[0] == "1")
+  {
+      reminder("打印成功");
+  }else
+  {
+      reminder("打印失败:"+reValue[1]);
+  }
+}
+	   </script>
+	     <div class="container un">
+        
+            <ul>
+                <li>
+                    <div class="frm-item">
+                        <label for=""><i class="fa fa-user"></i> 客户号</label>
+                        <div class="frm-group">
+                            <input type="text" width="120" id='printCustValue'><input type='text' style='display:none' id='printCustId'>
+                                <a href="#" class="btn" id="printSearch"><i class="fa fa-search"></i></a>
+                                <ul class="filter-list" id="printsearchResult">
+                                   
+                                </ul>
+                                </div>
+                        <div class="frm-group">
+                            <a href="javascript:printMs()" class="btn" id="printms"><i class="fa xx"></i>打印MS</a>
+                        </div>
+                        
+                    </div>
+                    
+                </li>
+                
+            </ul>
+            
+            
+           </div>
+    
+    <div class="info" style='display:none'>
+        
+        <dl>
+            
+            <dt>单位</dt>
+            <dd id='printUnit'></dd>
+            
+            <dt>客户姓名</dt>
+            <dd id='printCustName'></dd>
+            
+            <dt>身份证</dt>
+            <dd id='printIdeiter'></dd>
+            
+            <dt>手机</dt>
+            <dd id='printPhone'></dd>
+            
+        </dl>
+    </div>
+      </div>
+		</section>
+			
+		<nav>
+			<ul class="list-menu" id='projectDis'>
+				<li><a href="company-profile.html">深圳懿花园</a></li>
+				<li><a href="ppt-cities.html" class="active"> 深圳观湖园</a></li>
+				<li><a href="ppt-cities.html"> 深圳观湖园</a></li>
+			</ul>
+		</nav>
+
+  
+    <!--<div id='waitLoading'>
+     <div class="process" style="top:300px;left:300px">
+     <i class="fa fa-circle-o-notch fa-spin"></i>
+     </div>
+     <div class="process-bg"></div>
+     </div>-->
+  
+	</body>
+</html>

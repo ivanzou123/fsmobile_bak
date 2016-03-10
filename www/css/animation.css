@@ -1,0 +1,61 @@
+
+.ppt-hide {
+	-webkit-animation: fadeOutDown .3s .0s ease both;
+	-moz-animation: fadeOutDown .3s .0s ease both;
+	display: none;
+}
+
+@-webkit-keyframes fadeOutDown {
+	0% {
+		opacity: 1;
+		-webkit-transform: translateY(0);
+	}
+
+	100% {
+		opacity: 0;
+		-webkit-transform: translateY(20px);
+	}
+}
+
+@-moz-keyframes fadeOutDown {
+	0% {
+		opacity: 1;
+		-moz-transform: translateY(0)
+	}
+
+	100% {
+		opacity: 0;
+		-moz-transform: translateY(20px)
+	}
+}
+.ppt-show {
+	-webkit-animation: fadeInUp .3s .0s ease both;
+	-moz-animation: fadeInUp .3s .0s ease both;
+	display: block;
+}
+
+@-webkit-keyframes fadeInUp {
+	0% {
+		opacity: 0;
+		-webkit-transform: translateY(20px);
+		display: none;
+	}
+
+	100% {
+		opacity: 1;
+		-webkit-transform: translateY(0);
+		display: block;
+	}
+}
+
+@-moz-keyframes fadeInUp {
+	0% {
+		opacity: 0;
+		-moz-transform: translateY(20px)
+	}
+
+	100% {
+		opacity: 1;
+		-moz-transform: translateY(0)
+	}
+}
